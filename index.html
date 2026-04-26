@@ -7,10 +7,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Die Sim">
+    <meta name="apple-mobile-web-app-title" content="3D Die Simulator">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#020617">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23020617'/%3E%3Ctext y='50%25' x='50%25' dominant-baseline='middle' text-anchor='middle' font-size='50' fill='white'%3E🎲%3C/text%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23020617'/><text y='50%' x='50%' dominant-baseline='middle' text-anchor='middle' font-size='50' fill='white'>🎲</text></svg>">
     
     <title>3D Die Simulator</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -19,27 +19,23 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;900&display=swap');
         
-        /* Fix Fullscreen PWA & Bouncing */
+        /* FIX ADA DI SINI: html & body dibuat fixed 100% */
         html, body { 
             margin: 0; padding: 0;
-            width: 100vw; 
-            height: 100dvh; /* dvh memastikan mentok sampai bawah layar fisik */
-            position: fixed; 
-            top: 0; left: 0;
+            width: 100%; height: 100%;
+            position: fixed; /* Cegah kedorong ke atas */
             overflow: hidden; 
             background-color: #020617; 
             font-family: 'Inter', sans-serif;
-            touch-action: none; 
-            -webkit-touch-callout: none;
-            user-select: none; 
-            -webkit-user-select: none; 
+            touch-action: none; user-select: none; -webkit-user-select: none; 
         }
-
+        
+        /* FIX ADA DI SINI: canvas pakai 100% biar ketarik full, nggak terhalang bug 100vh di PWA */
         canvas { 
             display: block; 
-            width: 100%; height: 100%; 
-            position: absolute; 
-            z-index: 0; top: 0; left: 0; 
+            width: 100% !important; 
+            height: 100% !important; 
+            position: absolute; z-index: 0; top:0; left:0; 
         }
         
         /* --- MAIN MENU STYLES --- */
@@ -118,8 +114,6 @@
             transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
             opacity: 0; pointer-events: none; backdrop-filter: blur(0px);
             z-index: 150;
-            position: absolute; 
-            inset: 0;
         }
         #settings-overlay.active {
             opacity: 1; pointer-events: auto; backdrop-filter: blur(30px);
@@ -157,7 +151,6 @@
         .settings-scroll {
             max-height: 65vh; overflow-y: auto; padding: 1rem 0;
             scrollbar-width: none;
-            overscroll-behavior: contain;
         }
         .settings-scroll::-webkit-scrollbar { display: none; }
 
@@ -166,6 +159,7 @@
         input[type="range"]:disabled::-webkit-slider-thumb { background: #64748b; border-color: #0f172a; cursor: not-allowed; }
         input[type="text"]::-webkit-outer-spin-button, input[type="text"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         
+        /* Notifikasi Dummy */
         #dummy-toast {
             position: absolute; top: 20px; left: 50%; transform: translateX(-50%) translateY(-20px);
             background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1);
@@ -182,6 +176,7 @@
 </head>
 <body class="antialiased text-white">
 
+    <!-- MAIN MENU SCREEN (KAMUFLASE) -->
     <div id="main-menu">
         <div class="title-container">
             <h1 class="title-main">3D DIE<br>SIMULATOR</h1>
@@ -195,13 +190,17 @@
     
     <div id="dummy-toast">Settings are locked in Free Version</div>
 
+    <!-- MAGIC UI -->
+    <!-- Layer Latihan Grid -->
     <div id="practice-grid">
         <div class="grid-cell">1</div><div class="grid-cell">2</div><div class="grid-cell">3</div>
         <div class="grid-cell">4</div><div class="grid-cell">5</div><div class="grid-cell">6</div>
     </div>
 
+    <!-- Area Layar yang Berinteraksi (Aktif setelah start) -->
     <div id="interaction-layer"></div>
 
+    <!-- Tutorial Popup -->
     <div id="tutorial-overlay"></div>
     <div id="tutorial-popup">
         <div class="text-4xl mb-4 opacity-80">✌️</div>
@@ -212,7 +211,8 @@
         <button id="btn-close-tutorial" class="w-full bg-white text-black py-4 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">Got It</button>
     </div>
 
-    <div id="settings-overlay" class="flex items-center justify-center">
+    <!-- UI Pengaturan Rahasia -->
+    <div id="settings-overlay" class="absolute inset-0 flex items-center justify-center">
         <div class="premium-card p-8 rounded-[3rem] w-[90vw] max-w-[400px]">
             <header class="mb-6 text-center">
                 <h2 class="text-[12px] uppercase tracking-[0.6em] font-black text-emerald-400/90 mb-1">Die With Peace</h2>
@@ -221,6 +221,8 @@
 
             <div class="scroll-mask">
                 <div class="settings-scroll px-1">
+                    
+                    <!-- Buy Me a Coffee Section -->
                     <div class="mb-6 p-5 rounded-[1.5rem] bg-gradient-to-br from-amber-500/10 to-orange-600/5 border border-amber-500/20 text-center flex flex-col items-center">
                         <a href="https://www.paypal.me/ighsss" target="_blank" class="inline-block px-8 py-3 mb-3 bg-amber-500 text-black text-[10px] font-black uppercase tracking-widest rounded-full shadow-[0_0_20px_rgba(245,158,11,0.3)] active:scale-95 transition-all">
                             ☕ Buy Me a Coffee
@@ -288,23 +290,21 @@
     </div>
 
     <script>
-        const iconSvg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23020617'/><text y='50%' x='50%' dominant-baseline='middle' text-anchor='middle' font-size='50' fill='white'>🎲</text></svg>`;
-        const iconUrlData = "data:image/svg+xml," + encodeURIComponent(iconSvg);
-        const manifest = {
-            name: "3D Die Simulator",
-            short_name: "Die Sim",
-            start_url: location.href,
-            display: "standalone",
-            background_color: "#020617",
-            theme_color: "#020617",
-            icons: [
-                { src: iconUrlData, sizes: "192x192", type: "image/svg+xml" },
-                { src: iconUrlData, sizes: "512x512", type: "image/svg+xml" }
-            ]
-        };
-        const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
-        document.head.insertAdjacentHTML('beforeend', `<link rel="manifest" href="${URL.createObjectURL(manifestBlob)}">`);
+        // --- SERVICE WORKER REGISTRATION (PWA) ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                // Skrip ini di-comment karena file sw.js tidak disertakan dalam satu file ini.
+                /*
+                navigator.serviceWorker.register('/sw.js').then((registration) => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, (err) => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+                */
+            });
+        }
 
+        // --- MENU LOGIC & TUTORIAL POPUP ---
         let isGameStarted = false;
         let isTutorialActive = false;
         const mainMenu = document.getElementById('main-menu');
@@ -312,6 +312,7 @@
         const btnStart = document.getElementById('btn-start');
         const btnDummy = document.getElementById('btn-dummy-settings');
         const dummyToast = document.getElementById('dummy-toast');
+        
         const tutorialOverlay = document.getElementById('tutorial-overlay');
         const tutorialPopup = document.getElementById('tutorial-popup');
         const btnCloseTutorial = document.getElementById('btn-close-tutorial');
@@ -319,20 +320,24 @@
         btnStart.addEventListener('click', () => {
             mainMenu.classList.add('hidden');
             isGameStarted = true; 
+            
             setTimeout(() => {
                 interactionLayer.style.display = 'block';
+                
+                // Cek apakah tutorial sudah pernah ditampilkan
                 if (!localStorage.getItem('tutorialShown')) {
                     isTutorialActive = true;
                     tutorialOverlay.classList.add('show');
                     tutorialPopup.classList.add('show');
                 }
-            }, 600);
+            }, 600); // Muncul tepat setelah animasi menu selesai
         });
 
         btnCloseTutorial.addEventListener('click', () => {
             tutorialOverlay.classList.remove('show');
             tutorialPopup.classList.remove('show');
             isTutorialActive = false;
+            // Simpan ke storage agar tidak muncul lagi
             localStorage.setItem('tutorialShown', 'true');
         });
 
@@ -345,6 +350,8 @@
             }, 2000);
         });
 
+
+        // --- KONSTANTA & VARIABEL ---
         const diceFaces = [1, 6, 2, 5, 3, 4], diceSize = 1.5;
         const baseCameraHeight = 40;
         const PHYSICS_STEP = 1/60, GRAVITY = -110, FRICTION = 0.98, RESTITUTION = 0.1;
@@ -360,6 +367,7 @@
         let sequenceIndex = 0;
         let isAlwaysRandom = false; 
 
+        // --- GEOMETRI DADU ---
         function createDiceGeo(w, h, d, r) {
             const geo = new THREE.BoxGeometry(w, h, d, 15, 15, 15);
             const pos = geo.attributes.position.array;
@@ -412,6 +420,7 @@
             return { num: diceFaces[idx], tilt: 1 - maxDot };
         }
 
+        // --- INISIALISASI SCENE UTAMA ---
         function init() {
             scene = new THREE.Scene(); scene.background = new THREE.Color('#020617');
             camera = new THREE.PerspectiveCamera(40, window.innerWidth/window.innerHeight, 0.1, 500);
@@ -429,18 +438,26 @@
             const light = new THREE.DirectionalLight(0xffffff, 0.45);
             light.position.set(40, 200, 60); 
             light.castShadow = true;
+            
             light.shadow.bias = -0.0005;
             light.shadow.normalBias = 0.05;
             const d = 80;
             light.shadow.camera.left = -d; light.shadow.camera.right = d;
             light.shadow.camera.top = d; light.shadow.camera.bottom = -d;
             light.shadow.mapSize.set(4096, 4096); 
+            light.shadow.radius = 1; 
             scene.add(light);
-            scene.add(new THREE.HemisphereLight(0xffffff, 0x050505, 0.1));
+            
+            const hemiLight = new THREE.HemisphereLight(0xffffff, 0x050505, 0.1);
+            scene.add(hemiLight);
 
-            const floorMat = new THREE.MeshStandardMaterial({ color: '#01030d', roughness: 0.95, metalness: 0.05 });
+            const floorMat = new THREE.MeshStandardMaterial({ 
+                color: '#01030d', roughness: 0.95, metalness: 0.05 
+            });
             const floor = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), floorMat);
-            floor.rotation.x = -Math.PI/2; floor.receiveShadow = true; scene.add(floor);
+            floor.rotation.x = -Math.PI/2; 
+            floor.receiveShadow = true; 
+            scene.add(floor);
 
             world = new CANNON.World(); world.gravity.set(0, GRAVITY, 0); world.allowSleep = true;
             physicsDiceMat = new CANNON.Material(); 
@@ -461,18 +478,15 @@
             requestAnimationFrame(animate);
             
             window.addEventListener('resize', () => { 
-                setTimeout(() => { // Kasih jeda dikit biar baca ukuran PWA-nya akurat
-                    renderer.setSize(window.innerWidth, window.innerHeight); 
-                    updateView(); 
-                    updateWalls(); 
-                }, 50);
+                renderer.setSize(window.innerWidth, window.innerHeight); 
+                updateView(); 
+                updateWalls(); 
             });
         }
 
         function updateView() {
             camera.aspect = window.innerWidth/window.innerHeight;
-            // Dibuat agak zoom in sedikit di portrait biar dadu terasa mengisi layar
-            let cy = Math.min(Math.max(camera.aspect < 1 ? baseCameraHeight * (1/camera.aspect) * 0.45 : baseCameraHeight, 32), 60);
+            let cy = Math.min(Math.max(camera.aspect < 1 ? baseCameraHeight * (1/camera.aspect) * 0.5 : baseCameraHeight, 35), 70);
             camera.position.set(0, cy, 0); camera.lookAt(0,0,0); camera.updateProjectionMatrix();
         }
 
@@ -480,7 +494,9 @@
             const wallShape = new CANNON.Box(new CANNON.Vec3(100, 100, 100));
             for(let i=0; i<4; i++) {
                 const body = new CANNON.Body({ mass: 0, material: wallMatPhys });
-                body.addShape(wallShape); world.addBody(body); walls.push(body);
+                body.addShape(wallShape);
+                world.addBody(body);
+                walls.push(body);
             }
             updateWalls();
         }
@@ -492,14 +508,12 @@
             const visibleWidth = visibleHeight * camera.aspect;
             
             const thickness = 100;
-            // Ditambahin offset biar tembok fisiknya sedikit KELUAR dari batas layar
-            // jadi dadu bisa bener-bener mentok ke bawah banget.
-            const offset = 4;
+            const margin = 1;
 
-            walls[0].position.set(0, 0, -visibleHeight/2 - thickness - offset);
-            walls[1].position.set(0, 0, visibleHeight/2 + thickness + offset);
-            walls[2].position.set(-visibleWidth/2 - thickness - offset, 0, 0);
-            walls[3].position.set(visibleWidth/2 + thickness + offset, 0, 0);
+            walls[0].position.set(0, 0, -visibleHeight/2 - thickness + margin);
+            walls[1].position.set(0, 0, visibleHeight/2 + thickness - margin);
+            walls[2].position.set(-visibleWidth/2 - thickness + margin, 0, 0);
+            walls[3].position.set(visibleWidth/2 + thickness - margin, 0, 0);
         }
 
         function createDie() {
@@ -527,11 +541,9 @@
             const vFOV = camera.fov * Math.PI / 180;
             const vH = 2 * Math.tan(vFOV / 2) * camera.position.y;
             const vW = vH * camera.aspect;
-            
-            const offset = 4;
             const positions = [
-                new CANNON.Vec3(0, 0, -vH/2 - 100 - offset), new CANNON.Vec3(0, 0, vH/2 + 100 + offset),
-                new CANNON.Vec3(-vW/2 - 100 - offset, 0, 0), new CANNON.Vec3(vW/2 + 100 + offset, 0, 0)
+                new CANNON.Vec3(0, 0, -vH/2 - 100 + 1), new CANNON.Vec3(0, 0, vH/2 + 100 - 1),
+                new CANNON.Vec3(-vW/2 - 100 + 1, 0, 0), new CANNON.Vec3(vW/2 + 100 - 1, 0, 0)
             ];
             positions.forEach(pos => {
                 const b = new CANNON.Body({ mass: 0, material: wm });
@@ -559,13 +571,7 @@
                 pBody.wakeUp();
 
                 const fY = 220 + Math.random()*80; 
-                
-                // Dibikin acak titik tarikannya biar dadu nyebar luas, 
-                // nggak terus-terusan ditarik ke pusat tengah layar.
-                const targetX = (Math.random() - 0.5) * (vW * 0.4); 
-                const targetZ = (Math.random() - 0.5) * (vH * 0.4); 
-                const dir = new CANNON.Vec3(targetX - pBody.position.x, 0, targetZ - pBody.position.z).unit();
-                
+                const dir = new CANNON.Vec3(-pBody.position.x, 0, -pBody.position.z).unit();
                 const pull = 30 + Math.random()*20;
                 const fX = dir.x * pull + (Math.random()-0.5)*30;
                 const fZ = dir.z * pull + (Math.random()-0.5)*30;
@@ -592,15 +598,18 @@
         }
 
         function roll(gridNum) {
+            // Cegah roll jika dadu sedang bergulir, setting terbuka, di main menu, atau popup tutorial masih muncul
             if (isRolling || isSettingsOpen || !isGameStarted || isTutorialActive) return;
             
             let finalTarget = null;
             let finalAvoid = null;
 
             if (!isAlwaysRandom && currentRollCount >= normalClicksLimit) {
-                if (controlMode === 'force') finalTarget = gridNum;
-                else if (controlMode === 'avoid') finalAvoid = gridNum;
-                else if (controlMode === 'sequence') {
+                if (controlMode === 'force') {
+                    finalTarget = gridNum;
+                } else if (controlMode === 'avoid') {
+                    finalAvoid = gridNum;
+                } else if (controlMode === 'sequence') {
                     if (sequenceArray.length > 0 && sequenceIndex < sequenceArray.length) {
                         finalTarget = sequenceArray[sequenceIndex];
                     }
@@ -614,6 +623,7 @@
                 dieBody.applyImpulse(new CANNON.Vec3((Math.random()-0.5)*100, 250, (Math.random()-0.5)*100), new CANNON.Vec3(1,1,1));
             } else {
                 isRolling = true;
+                
                 if (!isAlwaysRandom && controlMode === 'sequence' && currentRollCount >= normalClicksLimit && sequenceArray.length > 0) {
                     if (sequenceIndex < sequenceArray.length) {
                         sequenceIndex++;
@@ -624,7 +634,9 @@
                         }
                     }
                 }
+                
                 currentRollCount++;
+                
                 dieBody.wakeUp();
                 dieBody.position.y = Math.max(dieBody.position.y, diceSize * 1.5);
                 dieBody.velocity.set(0,0,0);
@@ -636,16 +648,19 @@
         function animate() {
             if(!isInitialized) return;
             requestAnimationFrame(animate);
+            
             if (!isGameStarted) {
                 dieBody.position.set(0, 15, 0);
                 dieBody.velocity.set(0, 0, 0);
                 dieBody.angularVelocity.set(0.3, 0.8, 0.3);
                 dieBody.wakeUp();
             }
+
             world.step(PHYSICS_STEP);
             dieMesh.position.copy(dieBody.position); 
             dieMesh.quaternion.copy(dieBody.quaternion);
             if (isRolling && dieBody.sleepState === CANNON.Body.SLEEPING) isRolling = false;
+            
             renderer.render(scene, camera);
         }
 
@@ -664,6 +679,7 @@
         const btnSeq = document.getElementById('mode-seq');
         const seqContainer = document.getElementById('sequence-container');
         const seqInput = document.getElementById('sequence-input');
+        
         const slider = document.getElementById('normal-clicks');
         const display = document.getElementById('clicks-display');
         const sliderDesc = document.getElementById('slider-desc');
@@ -679,11 +695,15 @@
 
         function updateSliderUI(isRandom) {
             if(isRandom) {
-                slider.disabled = true; slider.style.opacity = '0.3';
-                display.style.opacity = '0.3'; sliderDesc.style.opacity = '0.3';
+                slider.disabled = true;
+                slider.style.opacity = '0.3';
+                display.style.opacity = '0.3';
+                sliderDesc.style.opacity = '0.3';
             } else {
-                slider.disabled = false; slider.style.opacity = '1';
-                display.style.opacity = '1'; sliderDesc.style.opacity = '1';
+                slider.disabled = false;
+                slider.style.opacity = '1';
+                display.style.opacity = '1';
+                sliderDesc.style.opacity = '1';
             }
         }
 
@@ -693,13 +713,20 @@
         });
 
         document.getElementById('close-settings').addEventListener('click', () => { 
-            isSettingsOpen = false; overlay.classList.remove('active'); 
-            const val = seqInput.value; sequenceArray = [];
+            isSettingsOpen = false; 
+            overlay.classList.remove('active'); 
+            
+            const val = seqInput.value;
+            sequenceArray = [];
             for (let i = 0; i < val.length; i++) {
                 const num = parseInt(val[i]);
-                if (num >= 1 && num <= 6) sequenceArray.push(num);
+                if (num >= 1 && num <= 6) {
+                    sequenceArray.push(num);
+                }
             }
-            sequenceIndex = 0; currentRollCount = 0; 
+            
+            sequenceIndex = 0;
+            currentRollCount = 0; 
             isAlwaysRandom = alwaysRandomCheckbox.checked;
         });
 
@@ -708,26 +735,38 @@
             btnForce.classList.toggle('active', mode === 'force');
             btnAvoid.classList.toggle('active', mode === 'avoid');
             btnSeq.classList.toggle('active', mode === 'sequence');
+            
             if (mode === 'sequence') {
-                seqContainer.classList.remove('hidden'); seqContainer.classList.add('block');
+                seqContainer.classList.remove('hidden');
+                seqContainer.classList.add('block');
             } else {
-                seqContainer.classList.add('hidden'); seqContainer.classList.remove('block');
+                seqContainer.classList.add('hidden');
+                seqContainer.classList.remove('block');
             }
+            
             if (isAlwaysRandom) {
-                isAlwaysRandom = false; alwaysRandomCheckbox.checked = false; updateSliderUI(false);
+                isAlwaysRandom = false;
+                alwaysRandomCheckbox.checked = false;
+                updateSliderUI(false);
             }
-            currentRollCount = 0; sequenceIndex = 0;
+            
+            currentRollCount = 0;
+            sequenceIndex = 0;
         }
 
         btnForce.addEventListener('click', () => updateModeUI('force'));
         btnAvoid.addEventListener('click', () => updateModeUI('avoid'));
         btnSeq.addEventListener('click', () => updateModeUI('sequence'));
-        seqInput.addEventListener('input', function(e) { this.value = this.value.replace(/[^1-6]/g, ''); });
+        
+        seqInput.addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^1-6]/g, '');
+        });
         
         slider.addEventListener('input', (e) => {
             normalClicksLimit = parseInt(e.target.value);
             display.innerText = normalClicksLimit + (normalClicksLimit === 1 ? " Click" : " Clicks");
-            currentRollCount = 0; sequenceIndex = 0;
+            currentRollCount = 0;
+            sequenceIndex = 0;
         });
 
         toggleGrid.addEventListener('change', (e) => {
@@ -737,13 +776,15 @@
 
         interactionLayer.addEventListener('click', (e) => {
             if (isSwiping || !isGameStarted || isTutorialActive) return; 
-            roll(getGridNumber(e.clientX, e.clientY));
+            const num = getGridNumber(e.clientX, e.clientY);
+            roll(num);
         });
 
         let sy = 0, isSwiping = false;
         window.addEventListener('touchstart', (e) => { 
             if (e.touches.length === 2 && isGameStarted && !isTutorialActive) { 
-                isSwiping = true; sy = (e.touches[0].clientY + e.touches[1].clientY)/2; 
+                isSwiping = true; 
+                sy = (e.touches[0].clientY + e.touches[1].clientY)/2; 
             } 
         }, { passive: false });
         
@@ -751,11 +792,15 @@
             if (e.touches.length === 2 && isSwiping && isGameStarted && !isTutorialActive) { 
                 e.preventDefault(); 
                 let cy = (e.touches[0].clientY + e.touches[1].clientY)/2; 
-                if (cy - sy > 60 && !isSettingsOpen) openSettings(); 
+                if (cy - sy > 60 && !isSettingsOpen) { 
+                    openSettings(); 
+                } 
             } 
         }, { passive: false });
         
-        window.addEventListener('touchend', () => { setTimeout(() => { isSwiping = false; }, 150); });
+        window.addEventListener('touchend', () => { 
+            setTimeout(() => { isSwiping = false; }, 150); 
+        });
     </script>
 </body>
 </html>
