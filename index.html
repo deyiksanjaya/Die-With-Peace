@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    
+    <!-- Web App & PWA Tags -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="3D Die Simulator">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#020617">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23020617'/><text y='50%' x='50%' dominant-baseline='middle' text-anchor='middle' font-size='50' fill='white'>🎲</text></svg>">
+    
+    <title>3D Die Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;900&display=swap');
+        body { 
+            margin: 0; overflow: hidden; 
+            background-color: #020617; 
+            font-family: 'Inter', sans-serif;
+            touch-action: none; user-select: none; -webkit-user-select: none; 
+        }
+        canvas { display: block; width: 100vw; height: 100vh; position: absolute; z-index: 0; top:0; left:0; }
+        
+        /* --- MAIN MENU STYLES --- */
+        #main-menu {
+            position: absolute; inset: 0; z-index: 100;
+            display: flex; flex-direction: column; align-items: center; 
+            justify-content: space-between; 
+            padding: 12vh 0 10vh 0;
+            background: radial-gradient(circle at center, rgba(30, 41, 59, 0.2) 0%, rgba(2, 6, 23, 0.95) 100%);
+            transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #main-menu.hidden { opacity: 0; pointer-events: none; }
+        
+        .title-container {
+            text-align: center;
+        }
+        .title-main {
+            font-size: 3.2rem; font-weight: 900; line-height: 1; letter-spacing: -0.05em;
+            background: linear-gradient(135deg, #ffffff 0%, #a1a1aa 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));
+        }
+
+        .button-container {
+            display: flex; flex-direction: column; align-items: center; width: 100%; gap: 1rem;
+        }
+
+        .menu-btn {
+            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white; padding: 1.2rem 3rem; border-radius: 3rem;
+            font-size: 0.9rem; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase;
+            backdrop-filter: blur(10px); transition: all 0.3s ease;
+            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+            width: 70%; max-width: 300px;
+        }
+        .menu-btn:active { transform: scale(0.95); background: rgba(255, 255, 255, 0.1); }
+        .menu-btn.primary { background: white; color: black; border-color: white; box-shadow: 0 0 40px rgba(255,255,255,0.2); }
+        .menu-btn.primary:active { background: #e2e8f0; }
+
+        /* --- MAGIC UI STYLES --- */
+        #practice-grid {
+            position: absolute; inset: 0; z-index: 5; pointer-events: none;
+            display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr);
+            opacity: 0; transition: opacity 0.5s ease;
+        }
+        #practice-grid.active { opacity: 1; }
+        .grid-cell {
+            border: 1px dashed rgba(255, 255, 255, 0.15);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 3rem; font-weight: 900; color: rgba(255, 255, 255, 0.1);
+        }
+
+        #interaction-layer { position: absolute; inset: 0; pointer-events: auto; z-index: 10; cursor: pointer; display: none; }
+        
+        /* --- POPUP & SETTINGS --- */
+        #tutorial-overlay {
+            position: absolute; inset: 0; z-index: 140;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(5px);
+            opacity: 0; pointer-events: none; transition: opacity 0.4s ease;
+        }
+        #tutorial-overlay.show { opacity: 1; pointer-events: auto; }
+        
+        #tutorial-popup {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9);
+            background: linear-gradient(180deg, rgba(30, 41, 59, 0.95) 0%, rgba(2, 6, 23, 0.98) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 2.5rem 2rem; border-radius: 2rem; text-align: center;
+            z-index: 150; opacity: 0; pointer-events: none;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.6);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            width: 85%; max-width: 320px;
+        }
+        #tutorial-popup.show { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
+
+        #settings-overlay {
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            opacity: 0; pointer-events: none; backdrop-filter: blur(0px);
+            z-index: 150;
+        }
+        #settings-overlay.active {
+            opacity: 1; pointer-events: auto; backdrop-filter: blur(30px);
+            background-color: rgba(0,0,0,0.8);
+        }
+        
+        .premium-card {
+            background: linear-gradient(180deg, rgba(30, 41, 59, 0.3) 0%, rgba(2, 6, 23, 0.98) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 50px 100px -20px rgba(0,0,0,1);
+            transform: scale(0.95) translateY(20px);
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        #settings-overlay.active .premium-card { transform: scale(1) translateY(0); }
+
+        .pill-btn {
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.02);
+            color: rgba(255, 255, 255, 0.4);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+        }
+        .pill-btn.active { 
+            background: white; color: black; border-color: white; 
+            box-shadow: 0 0 20px rgba(255,255,255,0.2); 
+        }
+        
+        .scroll-mask {
+            position: relative; overflow: hidden; display: flex; flex-direction: column;
+            mask-image: linear-gradient(to bottom, transparent, black 5%, black 95%, transparent);
+            -webkit-mask-image: linear-gradient(to bottom, transparent, black 5%, black 95%, transparent);
+        }
+
+        .settings-scroll {
+            max-height: 65vh; overflow-y: auto; padding: 1rem 0;
+            scrollbar-width: none;
+        }
+        .settings-scroll::-webkit-scrollbar { display: none; }
+
+        input[type="range"] { -webkit-appearance: none; background: rgba(255,255,255,0.05); height: 4px; border-radius: 2px; width: 100%; transition: opacity 0.3s ease; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; background: white; border-radius: 50%; cursor: pointer; border: 4px solid #1e293b; }
+        input[type="range"]:disabled::-webkit-slider-thumb { background: #64748b; border-color: #0f172a; cursor: not-allowed; }
+        input[type="text"]::-webkit-outer-spin-button, input[type="text"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        
+        /* Notifikasi Dummy */
+        #dummy-toast {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%) translateY(-20px);
+            background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1);
+            padding: 10px 20px; border-radius: 20px; font-size: 0.7rem; letter-spacing: 0.1em;
+            opacity: 0; pointer-events: none; transition: all 0.3s ease; z-index: 101;
+        }
+        #dummy-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        
+        .credit-text {
+            font-size: 0.5rem; letter-spacing: 0.2em; color: rgba(255,255,255,0.2);
+            text-align: center; margin-top: 1.5rem; text-transform: uppercase;
+        }
+    </style>
+</head>
+<body class="antialiased text-white">
+
+    <!-- MAIN MENU SCREEN (KAMUFLASE) -->
+    <div id="main-menu">
+        <div class="title-container">
+            <h1 class="title-main">3D DIE<br>SIMULATOR</h1>
+        </div>
+        
+        <div class="button-container">
+            <button id="btn-start" class="menu-btn primary">Play</button>
+            <button id="btn-dummy-settings" class="menu-btn">Settings</button>
+        </div>
+    </div>
+    
+    <div id="dummy-toast">Settings are locked in Free Version</div>
+
+    <!-- MAGIC UI -->
+    <!-- Layer Latihan Grid -->
+    <div id="practice-grid">
+        <div class="grid-cell">1</div><div class="grid-cell">2</div><div class="grid-cell">3</div>
+        <div class="grid-cell">4</div><div class="grid-cell">5</div><div class="grid-cell">6</div>
+    </div>
+
+    <!-- Area Layar yang Berinteraksi (Aktif setelah start) -->
+    <div id="interaction-layer"></div>
+
+    <!-- Tutorial Popup -->
+    <div id="tutorial-overlay"></div>
+    <div id="tutorial-popup">
+        <div class="text-4xl mb-4 opacity-80">✌️</div>
+        <h3 class="text-xs font-black text-emerald-400/90 mb-3 tracking-[0.3em] uppercase">Secret Access</h3>
+        <p class="text-[11px] text-white/70 mb-6 leading-relaxed tracking-wider">
+            Swipe down with two fingers to access the settings.
+        </p>
+        <button id="btn-close-tutorial" class="w-full bg-white text-black py-4 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">Got It</button>
+    </div>
+
+    <!-- UI Pengaturan Rahasia -->
+    <div id="settings-overlay" class="absolute inset-0 flex items-center justify-center">
+        <div class="premium-card p-8 rounded-[3rem] w-[90vw] max-w-[400px]">
+            <header class="mb-6 text-center">
+                <h2 class="text-[12px] uppercase tracking-[0.6em] font-black text-emerald-400/90 mb-1">Die With Peace</h2>
+                <p class="text-xs font-light text-white/50 tracking-widest uppercase">Configuration</p>
+            </header>
+
+            <div class="scroll-mask">
+                <div class="settings-scroll px-1">
+                    
+                    <!-- Buy Me a Coffee Section -->
+                    <div class="mb-6 p-5 rounded-[1.5rem] bg-gradient-to-br from-amber-500/10 to-orange-600/5 border border-amber-500/20 text-center flex flex-col items-center">
+                        <a href="https://www.paypal.me/ighsss" target="_blank" class="inline-block px-8 py-3 mb-3 bg-amber-500 text-black text-[10px] font-black uppercase tracking-widest rounded-full shadow-[0_0_20px_rgba(245,158,11,0.3)] active:scale-95 transition-all">
+                            ☕ Buy Me a Coffee
+                        </a>
+                        <p class="text-[8px] text-amber-100/60 uppercase tracking-widest leading-relaxed">
+                            Buying me a coffee will greatly motivate me to keep creating more amazing things in the future.
+                        </p>
+                    </div>
+
+                    <div class="mb-5 flex items-center justify-between bg-white/[0.03] p-4 rounded-[1.5rem] border border-white/5">
+                        <span class="text-[10px] uppercase tracking-[0.2em] font-bold text-white/60">Show Grid (Practice)</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="toggle-grid" class="sr-only peer">
+                            <div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500/80"></div>
+                        </label>
+                    </div>
+
+                    <div class="mb-2">
+                        <span class="block text-[10px] uppercase tracking-[0.3em] font-bold text-white/40 mb-3 text-center">Mode Selection</span>
+                        <div class="grid grid-cols-3 gap-2 bg-white/5 p-2 rounded-[1.8rem] border border-white/5">
+                            <button id="mode-force" class="pill-btn py-3 rounded-[1rem] text-[9px] font-black active">Force</button>
+                            <button id="mode-avoid" class="pill-btn py-3 rounded-[1rem] text-[9px] font-black">Avoid</button>
+                            <button id="mode-seq" class="pill-btn py-3 rounded-[1rem] text-[9px] font-black">Sequence</button>
+                        </div>
+                    </div>
+
+                    <div id="sequence-container" class="hidden mb-6 bg-white/[0.03] p-4 rounded-[1.5rem] border border-white/5 transition-all">
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="text-[10px] uppercase tracking-[0.2em] font-bold text-emerald-400/70">Sequence Pattern</span>
+                        </div>
+                        <input type="text" id="sequence-input" maxlength="15" placeholder="e.g. 16542" class="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white text-center tracking-[0.5em] font-mono outline-none focus:border-emerald-500/50 transition-colors" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                        <p class="text-[8px] text-white/30 uppercase tracking-widest text-center mt-2">Only numbers 1-6 allowed</p>
+                    </div>
+
+                    <div class="mt-4 bg-white/[0.03] p-5 rounded-[2rem] border border-white/5">
+                        <div class="flex justify-between items-center mb-4">
+                            <span class="text-[10px] uppercase tracking-[0.2em] font-bold text-emerald-400/70">Normal Start</span>
+                            <span id="clicks-display" class="text-xs font-mono text-white/60 transition-opacity duration-300">0 Clicks</span>
+                        </div>
+                        <input type="range" id="normal-clicks" min="0" max="10" value="0">
+                        <p id="slider-desc" class="text-[9px] text-white/30 uppercase tracking-widest text-center mt-4 mb-5 leading-relaxed transition-opacity duration-300">
+                            Normal random rolls for the first X clicks.
+                        </p>
+                        
+                        <div class="pt-4 border-t border-white/5 flex items-center justify-between">
+                            <span class="text-[10px] uppercase tracking-[0.2em] font-bold text-red-400/70">Always Random</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="always-random-checkbox" class="sr-only peer">
+                                <div class="w-10 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-500/80"></div>
+                            </label>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <button id="close-settings" class="w-full bg-white text-black py-5 rounded-[2rem] text-[11px] font-black uppercase tracking-[0.4em] shadow-2xl active:scale-[0.98] transition-all mt-4">
+                Done
+            </button>
+            
+            <div class="credit-text">
+                Concepted by Heri Sanjaya
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- SERVICE WORKER REGISTRATION (PWA) ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                // Skrip ini di-comment karena file sw.js tidak disertakan dalam satu file ini.
+                /*
+                navigator.serviceWorker.register('/sw.js').then((registration) => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, (err) => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+                */
+            });
+        }
+
+        // --- MENU LOGIC & TUTORIAL POPUP ---
+        let isGameStarted = false;
+        let isTutorialActive = false;
+        const mainMenu = document.getElementById('main-menu');
+        const interactionLayer = document.getElementById('interaction-layer');
+        const btnStart = document.getElementById('btn-start');
+        const btnDummy = document.getElementById('btn-dummy-settings');
+        const dummyToast = document.getElementById('dummy-toast');
+        
+        const tutorialOverlay = document.getElementById('tutorial-overlay');
+        const tutorialPopup = document.getElementById('tutorial-popup');
+        const btnCloseTutorial = document.getElementById('btn-close-tutorial');
+
+        btnStart.addEventListener('click', () => {
+            mainMenu.classList.add('hidden');
+            isGameStarted = true; 
+            
+            setTimeout(() => {
+                interactionLayer.style.display = 'block';
+                
+                // Cek apakah tutorial sudah pernah ditampilkan
+                if (!localStorage.getItem('tutorialShown')) {
+                    isTutorialActive = true;
+                    tutorialOverlay.classList.add('show');
+                    tutorialPopup.classList.add('show');
+                }
+            }, 600); // Muncul tepat setelah animasi menu selesai
+        });
+
+        btnCloseTutorial.addEventListener('click', () => {
+            tutorialOverlay.classList.remove('show');
+            tutorialPopup.classList.remove('show');
+            isTutorialActive = false;
+            // Simpan ke storage agar tidak muncul lagi
+            localStorage.setItem('tutorialShown', 'true');
+        });
+
+        let toastTimeout;
+        btnDummy.addEventListener('click', () => {
+            clearTimeout(toastTimeout);
+            dummyToast.classList.add('show');
+            toastTimeout = setTimeout(() => {
+                dummyToast.classList.remove('show');
+            }, 2000);
+        });
+
+
+        // --- KONSTANTA & VARIABEL ---
+        const diceFaces = [1, 6, 2, 5, 3, 4], diceSize = 1.5;
+        const baseCameraHeight = 40;
+        const PHYSICS_STEP = 1/60, GRAVITY = -110, FRICTION = 0.98, RESTITUTION = 0.1;
+
+        let scene, camera, renderer, world, physicsDiceMat, floorMatPhys, wallMatPhys;
+        let dieMesh, dieBody;
+        let walls = [];
+        let isRolling = false, isInitialized = false, isSettingsOpen = false;
+        
+        let controlMode = 'force'; 
+        let normalClicksLimit = 0, currentRollCount = 0;
+        let sequenceArray = [];
+        let sequenceIndex = 0;
+        let isAlwaysRandom = false; 
+
+        // --- GEOMETRI DADU ---
+        function createDiceGeo(w, h, d, r) {
+            const geo = new THREE.BoxGeometry(w, h, d, 15, 15, 15);
+            const pos = geo.attributes.position.array;
+            const wi = w/2-r, hi = h/2-r, di = d/2-r;
+            for(let i=0; i<pos.length; i+=3) {
+                let x=pos[i], y=pos[i+1], z=pos[i+2];
+                if(Math.abs(x)>wi && Math.abs(y)>hi && Math.abs(z)>di) {
+                    const cx=Math.sign(x)*wi, cy=Math.sign(y)*hi, cz=Math.sign(z)*di;
+                    const dx=x-cx, dy=y-cy, dz=z-cz; const l=Math.sqrt(dx*dx+dy*dy+dz*dz);
+                    pos[i]=cx+dx*(r/l); pos[i+1]=cy+dy*(r/l); pos[i+2]=cz+dz*(r/l);
+                } else if(Math.abs(x)>wi && Math.abs(y)>hi) {
+                    const cx=Math.sign(x)*wi, cy=Math.sign(y)*hi; const l=Math.sqrt((x-cx)**2+(y-cy)**2);
+                    pos[i]=cx+(x-cx)*(r/l); pos[i+1]=cy+(y-cy)*(r/l);
+                } else if(Math.abs(x)>wi && Math.abs(z)>di) {
+                    const cx=Math.sign(x)*wi, cz=Math.sign(z)*di; const l=Math.sqrt((x-cx)**2+(z-cz)**2);
+                    pos[i]=cx+(x-cx)*(r/l); pos[i+2]=cz+(z-cz)*(r/l);
+                } else if(Math.abs(y)>hi && Math.abs(z)>di) {
+                    const cy=Math.sign(y)*hi, cz=Math.sign(z)*di; const l=Math.sqrt((y-cy)**2+(z-cz)**2);
+                    pos[i+1]=cy+(y-cy)*(r/l); pos[i+2]=cz+(z-cz)*(r/l);
+                }
+            }
+            geo.computeVertexNormals(); return geo;
+        }
+
+        const sharedGeo = createDiceGeo(diceSize*2, diceSize*2, diceSize*2, 0.3);
+        const diceMaterials = diceFaces.map(num => {
+            const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 512, 512);
+            ctx.lineJoin = "round"; ctx.lineWidth = 15; ctx.strokeStyle = '#f8fafc'; ctx.strokeRect(8, 8, 496, 496);
+            ctx.fillStyle = num === 1 ? '#ef4444' : '#020617'; 
+            const drawDot = (x, y) => { ctx.beginPath(); ctx.arc(x, y, 45, 0, Math.PI*2); ctx.fill(); };
+            const c = 256, o = 125;
+            if ([1, 3, 5].includes(num)) drawDot(c, c);
+            if ([2, 3, 4, 5, 6].includes(num)) { drawDot(c-o, c-o); drawDot(c+o, c+o); }
+            if ([4, 5, 6].includes(num)) { drawDot(c-o, c+o); drawDot(c+o, c-o); }
+            if (num === 6) { drawDot(c-o, c); drawDot(c+o, c); }
+            const tex = new THREE.CanvasTexture(canvas); tex.anisotropy = renderer ? renderer.capabilities.getMaxAnisotropy() : 8;
+            return new THREE.MeshStandardMaterial({ map: tex, roughness: 0.35, metalness: 0.0 });
+        });
+
+        function getNumber(quat) {
+            const up = new THREE.Vector3(0, 1, 0);
+            let maxDot = -1, idx = -1;
+            const normals = [new THREE.Vector3(1,0,0), new THREE.Vector3(-1,0,0), new THREE.Vector3(0,1,0), new THREE.Vector3(0,-1,0), new THREE.Vector3(0,0,1), new THREE.Vector3(0,0,-1)];
+            for (let i=0; i<6; i++) {
+                const dot = normals[i].clone().applyQuaternion(quat).dot(up);
+                if (dot > maxDot) { maxDot = dot; idx = i; }
+            }
+            return { num: diceFaces[idx], tilt: 1 - maxDot };
+        }
+
+        // --- INISIALISASI SCENE UTAMA ---
+        function init() {
+            scene = new THREE.Scene(); scene.background = new THREE.Color('#020617');
+            camera = new THREE.PerspectiveCamera(40, window.innerWidth/window.innerHeight, 0.1, 500);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true; 
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            
+            document.body.insertBefore(renderer.domElement, document.body.firstChild);
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.25)); 
+            
+            const light = new THREE.DirectionalLight(0xffffff, 0.45);
+            light.position.set(40, 200, 60); 
+            light.castShadow = true;
+            
+            light.shadow.bias = -0.0005;
+            light.shadow.normalBias = 0.05;
+            const d = 80;
+            light.shadow.camera.left = -d; light.shadow.camera.right = d;
+            light.shadow.camera.top = d; light.shadow.camera.bottom = -d;
+            light.shadow.mapSize.set(4096, 4096); 
+            light.shadow.radius = 1; 
+            scene.add(light);
+            
+            const hemiLight = new THREE.HemisphereLight(0xffffff, 0x050505, 0.1);
+            scene.add(hemiLight);
+
+            const floorMat = new THREE.MeshStandardMaterial({ 
+                color: '#01030d', roughness: 0.95, metalness: 0.05 
+            });
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), floorMat);
+            floor.rotation.x = -Math.PI/2; 
+            floor.receiveShadow = true; 
+            scene.add(floor);
+
+            world = new CANNON.World(); world.gravity.set(0, GRAVITY, 0); world.allowSleep = true;
+            physicsDiceMat = new CANNON.Material(); 
+            floorMatPhys = new CANNON.Material();
+            wallMatPhys = new CANNON.Material();
+
+            world.addContactMaterial(new CANNON.ContactMaterial(floorMatPhys, physicsDiceMat, { friction: FRICTION, restitution: RESTITUTION }));
+            world.addContactMaterial(new CANNON.ContactMaterial(wallMatPhys, physicsDiceMat, { friction: 0.1, restitution: 0.4 }));
+
+            const floorBody = new CANNON.Body({ mass: 0, shape: new CANNON.Plane(), material: floorMatPhys });
+            floorBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0), -Math.PI/2); world.addBody(floorBody);
+
+            updateView();
+            createWalls();
+            createDie();
+            
+            isInitialized = true;
+            requestAnimationFrame(animate);
+            
+            window.addEventListener('resize', () => { 
+                renderer.setSize(window.innerWidth, window.innerHeight); 
+                updateView(); 
+                updateWalls(); 
+            });
+        }
+
+        function updateView() {
+            camera.aspect = window.innerWidth/window.innerHeight;
+            let cy = Math.min(Math.max(camera.aspect < 1 ? baseCameraHeight * (1/camera.aspect) * 0.5 : baseCameraHeight, 35), 70);
+            camera.position.set(0, cy, 0); camera.lookAt(0,0,0); camera.updateProjectionMatrix();
+        }
+
+        function createWalls() {
+            const wallShape = new CANNON.Box(new CANNON.Vec3(100, 100, 100));
+            for(let i=0; i<4; i++) {
+                const body = new CANNON.Body({ mass: 0, material: wallMatPhys });
+                body.addShape(wallShape);
+                world.addBody(body);
+                walls.push(body);
+            }
+            updateWalls();
+        }
+
+        function updateWalls() {
+            if(walls.length < 4) return;
+            const vFOV = camera.fov * Math.PI / 180;
+            const visibleHeight = 2 * Math.tan(vFOV / 2) * camera.position.y;
+            const visibleWidth = visibleHeight * camera.aspect;
+            
+            const thickness = 100;
+            const margin = 1;
+
+            walls[0].position.set(0, 0, -visibleHeight/2 - thickness + margin);
+            walls[1].position.set(0, 0, visibleHeight/2 + thickness - margin);
+            walls[2].position.set(-visibleWidth/2 - thickness + margin, 0, 0);
+            walls[3].position.set(visibleWidth/2 + thickness - margin, 0, 0);
+        }
+
+        function createDie() {
+            dieMesh = new THREE.Mesh(sharedGeo, diceMaterials); dieMesh.castShadow = true; scene.add(dieMesh);
+            dieBody = new CANNON.Body({ 
+                mass: 5.0, shape: new CANNON.Box(new CANNON.Vec3(diceSize*0.96, diceSize*0.96, diceSize*0.96)), 
+                material: physicsDiceMat, allowSleep: true, sleepSpeedLimit: 0.8, sleepTimeLimit: 0.3, 
+                linearDamping: 0.15, angularDamping: 0.4 
+            });
+            dieBody.position.set(0, diceSize, 0); 
+            dieBody.quaternion.setFromEuler(Math.random()*Math.PI, Math.random()*Math.PI, Math.random()*Math.PI);
+            world.addBody(dieBody);
+        }
+
+        function predict(target, avoid) {
+            const pWorld = new CANNON.World(); pWorld.gravity.set(0, GRAVITY, 0); pWorld.allowSleep = true;
+            const tm = new CANNON.Material(); const fm = new CANNON.Material(); const wm = new CANNON.Material();
+            pWorld.addContactMaterial(new CANNON.ContactMaterial(fm, tm, { friction: FRICTION, restitution: RESTITUTION }));
+            pWorld.addContactMaterial(new CANNON.ContactMaterial(wm, tm, { friction: 0.1, restitution: 0.4 }));
+            
+            const tFloor = new CANNON.Body({ mass: 0, shape: new CANNON.Plane(), material: fm });
+            tFloor.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0), -Math.PI/2); pWorld.addBody(tFloor);
+            
+            const wallShape = new CANNON.Box(new CANNON.Vec3(100, 100, 100));
+            const vFOV = camera.fov * Math.PI / 180;
+            const vH = 2 * Math.tan(vFOV / 2) * camera.position.y;
+            const vW = vH * camera.aspect;
+            const positions = [
+                new CANNON.Vec3(0, 0, -vH/2 - 100 + 1), new CANNON.Vec3(0, 0, vH/2 + 100 - 1),
+                new CANNON.Vec3(-vW/2 - 100 + 1, 0, 0), new CANNON.Vec3(vW/2 + 100 - 1, 0, 0)
+            ];
+            positions.forEach(pos => {
+                const b = new CANNON.Body({ mass: 0, material: wm });
+                b.addShape(wallShape); b.position.copy(pos); pWorld.addBody(b);
+            });
+
+            const pBody = new CANNON.Body({ 
+                mass: 5.0, shape: new CANNON.Box(new CANNON.Vec3(diceSize*0.96, diceSize*0.96, diceSize*0.96)), 
+                material: tm, allowSleep: true, linearDamping: 0.15, angularDamping: 0.4 
+            });
+            pWorld.addBody(pBody);
+
+            const startPos = dieBody.position.clone();
+            const startQuat = dieBody.quaternion.clone();
+            const maxIters = (target !== null) ? 800 : 350;
+
+            for (let i=0; i < maxIters; i++) {
+                pBody.position.copy(startPos); 
+                pBody.position.y = Math.max(pBody.position.y, diceSize * 1.5);
+                pBody.quaternion.copy(startQuat);
+                pBody.velocity.set(0,0,0);
+                pBody.angularVelocity.set(0,0,0);
+                pBody.force.set(0,0,0);
+                pBody.torque.set(0,0,0);
+                pBody.wakeUp();
+
+                const fY = 220 + Math.random()*80; 
+                const dir = new CANNON.Vec3(-pBody.position.x, 0, -pBody.position.z).unit();
+                const pull = 30 + Math.random()*20;
+                const fX = dir.x * pull + (Math.random()-0.5)*30;
+                const fZ = dir.z * pull + (Math.random()-0.5)*30;
+                const off = new CANNON.Vec3((Math.random()-0.5)*3, (Math.random()-0.5)*3, (Math.random()-0.5)*3);
+                const spin = new CANNON.Vec3((Math.random()-0.5)*500, (Math.random()-0.5)*500, (Math.random()-0.5)*500);
+                
+                pBody.applyImpulse(new CANNON.Vec3(fX, fY, fZ), off); 
+                pBody.angularVelocity.copy(spin);
+
+                let step = 0; 
+                while (step < 700) { 
+                    pWorld.step(PHYSICS_STEP); step++; 
+                    if(pBody.sleepState === CANNON.Body.SLEEPING) break; 
+                }
+
+                const res = getNumber(pBody.quaternion);
+                let valid = (target !== null) ? (res.num === target) : (res.num !== avoid);
+                
+                if (valid && res.tilt < 0.05) { 
+                    return { f: new CANNON.Vec3(fX, fY, fZ), o: off, s: spin }; 
+                }
+            }
+            return null;
+        }
+
+        function roll(gridNum) {
+            // Cegah roll jika dadu sedang bergulir, setting terbuka, di main menu, atau popup tutorial masih muncul
+            if (isRolling || isSettingsOpen || !isGameStarted || isTutorialActive) return;
+            
+            let finalTarget = null;
+            let finalAvoid = null;
+
+            if (!isAlwaysRandom && currentRollCount >= normalClicksLimit) {
+                if (controlMode === 'force') {
+                    finalTarget = gridNum;
+                } else if (controlMode === 'avoid') {
+                    finalAvoid = gridNum;
+                } else if (controlMode === 'sequence') {
+                    if (sequenceArray.length > 0 && sequenceIndex < sequenceArray.length) {
+                        finalTarget = sequenceArray[sequenceIndex];
+                    }
+                }
+            }
+
+            const p = predict(finalTarget, finalAvoid); 
+            
+            if (!p) {
+                dieBody.wakeUp();
+                dieBody.applyImpulse(new CANNON.Vec3((Math.random()-0.5)*100, 250, (Math.random()-0.5)*100), new CANNON.Vec3(1,1,1));
+            } else {
+                isRolling = true;
+                
+                if (!isAlwaysRandom && controlMode === 'sequence' && currentRollCount >= normalClicksLimit && sequenceArray.length > 0) {
+                    if (sequenceIndex < sequenceArray.length) {
+                        sequenceIndex++;
+                        if (sequenceIndex >= sequenceArray.length) {
+                            isAlwaysRandom = true;
+                            document.getElementById('always-random-checkbox').checked = true;
+                            updateSliderUI(true);
+                        }
+                    }
+                }
+                
+                currentRollCount++;
+                
+                dieBody.wakeUp();
+                dieBody.position.y = Math.max(dieBody.position.y, diceSize * 1.5);
+                dieBody.velocity.set(0,0,0);
+                dieBody.angularVelocity.set(0,0,0);
+                dieBody.applyImpulse(p.f, p.o); dieBody.angularVelocity.copy(p.s);
+            }
+        }
+
+        function animate() {
+            if(!isInitialized) return;
+            requestAnimationFrame(animate);
+            
+            if (!isGameStarted) {
+                dieBody.position.set(0, 15, 0);
+                dieBody.velocity.set(0, 0, 0);
+                dieBody.angularVelocity.set(0.3, 0.8, 0.3);
+                dieBody.wakeUp();
+            }
+
+            world.step(PHYSICS_STEP);
+            dieMesh.position.copy(dieBody.position); 
+            dieMesh.quaternion.copy(dieBody.quaternion);
+            if (isRolling && dieBody.sleepState === CANNON.Body.SLEEPING) isRolling = false;
+            
+            renderer.render(scene, camera);
+        }
+
+        init();
+
+        function getGridNumber(clientX, clientY) {
+            const w = window.innerWidth, h = window.innerHeight;
+            const col = Math.floor((clientX / w) * 3); 
+            const row = Math.floor((clientY / h) * 2);
+            return (row * 3) + col + 1;
+        }
+
+        const overlay = document.getElementById('settings-overlay');
+        const btnForce = document.getElementById('mode-force');
+        const btnAvoid = document.getElementById('mode-avoid');
+        const btnSeq = document.getElementById('mode-seq');
+        const seqContainer = document.getElementById('sequence-container');
+        const seqInput = document.getElementById('sequence-input');
+        
+        const slider = document.getElementById('normal-clicks');
+        const display = document.getElementById('clicks-display');
+        const sliderDesc = document.getElementById('slider-desc');
+        const alwaysRandomCheckbox = document.getElementById('always-random-checkbox');
+        const toggleGrid = document.getElementById('toggle-grid');
+        const practiceGrid = document.getElementById('practice-grid');
+
+        function openSettings() { 
+            if(!isGameStarted || isTutorialActive) return; 
+            isSettingsOpen = true; 
+            overlay.classList.add('active'); 
+        }
+
+        function updateSliderUI(isRandom) {
+            if(isRandom) {
+                slider.disabled = true;
+                slider.style.opacity = '0.3';
+                display.style.opacity = '0.3';
+                sliderDesc.style.opacity = '0.3';
+            } else {
+                slider.disabled = false;
+                slider.style.opacity = '1';
+                display.style.opacity = '1';
+                sliderDesc.style.opacity = '1';
+            }
+        }
+
+        alwaysRandomCheckbox.addEventListener('change', (e) => {
+            isAlwaysRandom = e.target.checked;
+            updateSliderUI(isAlwaysRandom);
+        });
+
+        document.getElementById('close-settings').addEventListener('click', () => { 
+            isSettingsOpen = false; 
+            overlay.classList.remove('active'); 
+            
+            const val = seqInput.value;
+            sequenceArray = [];
+            for (let i = 0; i < val.length; i++) {
+                const num = parseInt(val[i]);
+                if (num >= 1 && num <= 6) {
+                    sequenceArray.push(num);
+                }
+            }
+            
+            sequenceIndex = 0;
+            currentRollCount = 0; 
+            isAlwaysRandom = alwaysRandomCheckbox.checked;
+        });
+
+        function updateModeUI(mode) {
+            controlMode = mode;
+            btnForce.classList.toggle('active', mode === 'force');
+            btnAvoid.classList.toggle('active', mode === 'avoid');
+            btnSeq.classList.toggle('active', mode === 'sequence');
+            
+            if (mode === 'sequence') {
+                seqContainer.classList.remove('hidden');
+                seqContainer.classList.add('block');
+            } else {
+                seqContainer.classList.add('hidden');
+                seqContainer.classList.remove('block');
+            }
+            
+            if (isAlwaysRandom) {
+                isAlwaysRandom = false;
+                alwaysRandomCheckbox.checked = false;
+                updateSliderUI(false);
+            }
+            
+            currentRollCount = 0;
+            sequenceIndex = 0;
+        }
+
+        btnForce.addEventListener('click', () => updateModeUI('force'));
+        btnAvoid.addEventListener('click', () => updateModeUI('avoid'));
+        btnSeq.addEventListener('click', () => updateModeUI('sequence'));
+        
+        seqInput.addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^1-6]/g, '');
+        });
+        
+        slider.addEventListener('input', (e) => {
+            normalClicksLimit = parseInt(e.target.value);
+            display.innerText = normalClicksLimit + (normalClicksLimit === 1 ? " Click" : " Clicks");
+            currentRollCount = 0;
+            sequenceIndex = 0;
+        });
+
+        toggleGrid.addEventListener('change', (e) => {
+            if (e.target.checked) practiceGrid.classList.add('active');
+            else practiceGrid.classList.remove('active');
+        });
+
+        interactionLayer.addEventListener('click', (e) => {
+            if (isSwiping || !isGameStarted || isTutorialActive) return; 
+            const num = getGridNumber(e.clientX, e.clientY);
+            roll(num);
+        });
+
+        let sy = 0, isSwiping = false;
+        window.addEventListener('touchstart', (e) => { 
+            if (e.touches.length === 2 && isGameStarted && !isTutorialActive) { 
+                isSwiping = true; 
+                sy = (e.touches[0].clientY + e.touches[1].clientY)/2; 
+            } 
+        }, { passive: false });
+        
+        window.addEventListener('touchmove', (e) => { 
+            if (e.touches.length === 2 && isSwiping && isGameStarted && !isTutorialActive) { 
+                e.preventDefault(); 
+                let cy = (e.touches[0].clientY + e.touches[1].clientY)/2; 
+                if (cy - sy > 60 && !isSettingsOpen) { 
+                    openSettings(); 
+                } 
+            } 
+        }, { passive: false });
+        
+        window.addEventListener('touchend', () => { 
+            setTimeout(() => { isSwiping = false; }, 150); 
+        });
+    </script>
+</body>
+</html>
