@@ -1,5 +1,5 @@
 // Nama storan cache untuk versi ini
-const CACHE_NAME = 'die-simulator-v1';
+const CACHE_NAME = 'die-simulator-v2';
 // Senarai aset yang perlu disimpan dalam cache untuk kegunaan luar talian
 const assetsToCache = [
   './',
