@@ -11,7 +11,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#020617">
     
-    <!-- Icon diubah ke icon-512.png -->
+    <!-- Icon -->
     <link rel="icon" type="image/png" href="icon-512.png">
     <link rel="apple-touch-icon" href="icon-512.png">
     
@@ -22,7 +22,7 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;900&display=swap');
         
-        /* --- CSS Reset Meniru App Referensimu --- */
+        /* --- CSS Reset --- */
         html, body {
             overscroll-behavior: none;
             -webkit-touch-callout: none;
@@ -393,6 +393,9 @@
         let sequenceArray = [];
         let sequenceIndex = 0;
         let isAlwaysRandom = false; 
+        
+        // VARIABEL BARU: Untuk mengunci ingatan Avoid Target
+        let lockedAvoidTarget = null; 
 
         // --- GEOMETRI DADU ---
         function createDiceGeo(w, h, d, r) {
@@ -634,7 +637,11 @@
                 if (controlMode === 'force') {
                     finalTarget = gridNum;
                 } else if (controlMode === 'avoid') {
-                    finalAvoid = gridNum;
+                    // MEMORI AVOID: Kunci angka pada sentuhan pertama
+                    if (lockedAvoidTarget === null) {
+                        lockedAvoidTarget = gridNum;
+                    }
+                    finalAvoid = lockedAvoidTarget;
                 } else if (controlMode === 'sequence') {
                     if (sequenceArray.length > 0 && sequenceIndex < sequenceArray.length) {
                         finalTarget = sequenceArray[sequenceIndex];
@@ -805,6 +812,9 @@
             currentRollCount = 0; 
             isAlwaysRandom = alwaysRandomCheckbox.checked;
 
+            // RESET MEMORI AVOID TARGET SAAT SETTING DITUTUP
+            lockedAvoidTarget = null; 
+
             saveSettings();
         });
 
@@ -830,6 +840,9 @@
             
             currentRollCount = 0;
             sequenceIndex = 0;
+
+            // RESET MEMORI AVOID TARGET SAAT MODE DIGANTI
+            lockedAvoidTarget = null;
         }
 
         btnForce.addEventListener('click', () => updateModeUI('force'));
