@@ -1,0 +1,24 @@
+{
+  "name": "3D Die Simulator",
+  "short_name": "3D Dice",
+  "description": "Simulator dadu 3D dengan fisika nyata dan engine RNG performa tinggi.",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
