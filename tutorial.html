@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Operations Manual - Die Simulator</title>
+    <title>Die With Peace - Manual</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;900&display=swap');
@@ -29,9 +29,10 @@
 
     <!-- Header -->
     <header class="text-center mb-10 max-w-lg w-full pt-4">
-        <h1 class="text-2xl font-black tracking-tighter text-gradient uppercase mb-3">Covert Operations Manual</h1>
+        <h1 class="text-2xl font-black tracking-tighter text-gradient uppercase mb-1">Die With Peace</h1>
+        <p class="text-xs text-emerald-400 font-bold tracking-[0.2em] uppercase mb-4">By Heri Sanjaya</p>
         <p class="text-sm text-slate-400 font-light tracking-wide leading-relaxed">
-            A guide to controlling the die outcomes invisibly. Master the underlying mechanics prior to any performance.
+            A covert operations manual. Master the underlying mechanics prior to any performance.
         </p>
     </header>
 
@@ -58,42 +59,44 @@
         <section class="glass-card rounded-[2rem] p-6">
             <h2 class="text-xs font-black text-emerald-400 uppercase tracking-[0.3em] mb-4">2. The Invisible Grid</h2>
             <p class="text-sm text-slate-300 mb-6 leading-relaxed">
-                The primary secret relies on the touch interface. The screen is mapped into six invisible zones. The outcome of the die is dictated by which specific zone you tap to initiate the roll.
+                The primary secret relies on the touch interface. The screen is mapped into six invisible zones mimicking a 16:9 phone ratio. The outcome of the die is dictated by which specific zone you tap.
             </p>
             
-            <!-- CSS Grid Illustration -->
-            <div class="relative w-full aspect-[3/4] max-w-[240px] mx-auto border-4 border-slate-700 rounded-3xl p-1 shadow-2xl bg-slate-900">
+            <!-- CSS Grid Illustration (16:9 Ratio, 2 Cols, 3 Rows) -->
+            <div class="relative w-full aspect-[9/16] max-w-[220px] mx-auto border-4 border-slate-700 rounded-[2rem] p-1.5 shadow-2xl bg-slate-900">
                 <!-- Phone Notch -->
-                <div class="absolute top-0 left-1/2 -translate-x-1/2 w-1/3 h-5 bg-slate-700 rounded-b-xl z-10"></div>
+                <div class="absolute top-0 left-1/2 -translate-x-1/2 w-1/3 h-4 bg-slate-700 rounded-b-xl z-10"></div>
                 
-                <div class="grid grid-cols-3 grid-rows-2 w-full h-full gap-1">
-                    <div class="border border-dashed border-emerald-500/30 bg-emerald-500/10 rounded-lg flex items-center justify-center">
+                <div class="grid grid-cols-2 grid-rows-3 w-full h-full gap-1.5 pt-2">
+                    <div class="border border-dashed border-emerald-500/30 bg-emerald-500/10 rounded-xl flex items-center justify-center">
                         <span class="text-3xl font-black text-emerald-400/50">1</span>
                     </div>
-                    <div class="border border-dashed border-emerald-500/30 bg-emerald-500/10 rounded-lg flex items-center justify-center">
+                    <div class="border border-dashed border-emerald-500/30 bg-emerald-500/10 rounded-xl flex items-center justify-center">
                         <span class="text-3xl font-black text-emerald-400/50">2</span>
                     </div>
-                    <div class="border border-dashed border-emerald-500/30 bg-emerald-500/10 rounded-lg flex items-center justify-center">
+                    <div class="border border-dashed border-emerald-500/30 bg-emerald-500/10 rounded-xl flex items-center justify-center">
                         <span class="text-3xl font-black text-emerald-400/50">3</span>
                     </div>
-                    <div class="border border-dashed border-emerald-500/30 bg-emerald-500/10 rounded-lg flex items-center justify-center">
+                    <div class="border border-dashed border-emerald-500/30 bg-emerald-500/10 rounded-xl flex items-center justify-center">
                         <span class="text-3xl font-black text-emerald-400/50">4</span>
                     </div>
-                    <div class="border border-dashed border-emerald-500/30 bg-emerald-500/10 rounded-lg flex items-center justify-center">
+                    <div class="border border-dashed border-emerald-500/30 bg-emerald-500/10 rounded-xl flex items-center justify-center">
                         <span class="text-3xl font-black text-emerald-400/50">5</span>
                     </div>
-                    <div class="border border-dashed border-emerald-500/30 bg-emerald-500/10 rounded-lg flex items-center justify-center">
+                    <div class="border border-dashed border-emerald-500/30 bg-emerald-500/10 rounded-xl flex items-center justify-center">
                         <span class="text-3xl font-black text-emerald-400/50">6</span>
                     </div>
                 </div>
             </div>
-            <p class="text-[10px] text-center text-slate-500 mt-4 tracking-widest uppercase">Screen Mapping Interface</p>
+            <p class="text-[10px] text-center text-slate-500 mt-5 tracking-widest uppercase">16:9 Screen Mapping Interface</p>
         </section>
 
         <!-- Section 3: Operational Modes -->
         <section class="glass-card rounded-[2rem] p-6">
             <h2 class="text-xs font-black text-emerald-400 uppercase tracking-[0.3em] mb-4">3. Operational Modes</h2>
             <div class="space-y-4">
+                
+                <!-- Force Mode -->
                 <div class="bg-white/5 p-4 rounded-xl border border-white/5">
                     <h3 class="text-sm font-bold text-white mb-1 flex items-center gap-2">
                         <span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span> Force Mode
@@ -103,15 +106,31 @@
                     </p>
                 </div>
                 
+                <!-- Avoid Mode -->
                 <div class="bg-white/5 p-4 rounded-xl border border-white/5">
-                    <h3 class="text-sm font-bold text-white mb-1 flex items-center gap-2">
+                    <h3 class="text-sm font-bold text-white mb-2 flex items-center gap-2">
                         <span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span> Avoid Mode
                     </h3>
-                    <p class="text-xs text-slate-400 leading-relaxed">
-                        The die is guaranteed <b>not</b> to land on the tapped zone's number. The result will be a random selection from the remaining five faces.
+                    <p class="text-xs text-slate-400 leading-relaxed mb-3">
+                        The die is programmed to <b>avoid</b> landing on the tapped zone's number. The result will be a random selection from the remaining five faces.
                     </p>
+                    <div class="bg-emerald-900/20 border-l-2 border-emerald-500 p-3 mb-3 rounded-r-lg">
+                        <p class="text-xs text-emerald-400/90 leading-relaxed">
+                            <b>Pro Tip:</b> Once the target number you want to avoid has been tapped, you no longer need to tap the same area. You can freely tap anywhere on the screen for the subsequent rolls!
+                        </p>
+                    </div>
+                    <div class="bg-red-950/40 border border-red-500/20 p-3 rounded-lg">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-sm">⚠️</span>
+                            <h4 class="text-[10px] font-bold text-red-400 uppercase tracking-widest">Warning</h4>
+                        </div>
+                        <p class="text-[10px] text-red-200/70 leading-relaxed">
+                            Although this mode is designed for Russian Roulette routines, it is <b>highly discouraged</b> to perform Russian Roulette using real dangerous objects, as the app is not yet 100% reliable. Please perform safely.
+                        </p>
+                    </div>
                 </div>
 
+                <!-- Sequence Mode -->
                 <div class="bg-white/5 p-4 rounded-xl border border-white/5">
                     <h3 class="text-sm font-bold text-white mb-1 flex items-center gap-2">
                         <span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span> Sequence Mode
@@ -152,4 +171,4 @@
     </main>
 
 </body>
-</html
+</html>
