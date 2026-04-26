@@ -10,7 +10,10 @@
     <meta name="apple-mobile-web-app-title" content="3D Die Simulator">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#020617">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23020617'/><text y='50%' x='50%' dominant-baseline='middle' text-anchor='middle' font-size='50' fill='white'>🎲</text></svg>">
+    
+    <!-- Icon diubah ke icon-512.png -->
+    <link rel="icon" type="image/png" href="icon-512.png">
+    <link rel="apple-touch-icon" href="icon-512.png">
     
     <title>3D Die Simulator</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -182,7 +185,6 @@
         }
     </style>
 </head>
-<!-- Terapkan struktur body persis seperti app Divinator -->
 <body class="overflow-hidden w-screen h-screen h-[100dvh] m-0 flex flex-col relative antialiased bg-[#020617]">
 
     <!-- MAIN MENU SCREEN -->
@@ -297,6 +299,34 @@
     </div>
 
     <script>
+        // --- DYNAMIC MANIFEST BUAT PWA (Icon udah diarahin ke icon-512.png) ---
+        const iconUrlData = "icon-512.png";
+        const manifest = {
+            name: "3D Die Simulator",
+            short_name: "Die Sim",
+            start_url: location.href,
+            display: "standalone",
+            background_color: "#020617",
+            theme_color: "#020617",
+            icons: [
+                { src: iconUrlData, sizes: "192x192", type: "image/png" },
+                { src: iconUrlData, sizes: "512x512", type: "image/png" }
+            ]
+        };
+        const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+        document.head.insertAdjacentHTML('beforeend', `<link rel="manifest" href="${URL.createObjectURL(manifestBlob)}">`);
+
+        // --- SERVICE WORKER REGISTRATION (PWA) ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').then((registration) => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, (err) => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+
         // --- MENU LOGIC & TUTORIAL POPUP ---
         let isGameStarted = false;
         let isTutorialActive = false;
@@ -317,20 +347,18 @@
             setTimeout(() => {
                 interactionLayer.style.display = 'block';
                 
-                // Cek apakah tutorial sudah pernah ditampilkan
                 if (!localStorage.getItem('tutorialShown')) {
                     isTutorialActive = true;
                     tutorialOverlay.classList.add('show');
                     tutorialPopup.classList.add('show');
                 }
-            }, 600); // Muncul tepat setelah animasi menu selesai
+            }, 600); 
         });
 
         btnCloseTutorial.addEventListener('click', () => {
             tutorialOverlay.classList.remove('show');
             tutorialPopup.classList.remove('show');
             isTutorialActive = false;
-            // Simpan ke storage agar tidak muncul lagi
             localStorage.setItem('tutorialShown', 'true');
         });
 
@@ -591,7 +619,6 @@
         }
 
         function roll(gridNum) {
-            // Cegah roll jika dadu sedang bergulir, setting terbuka, di main menu, atau popup tutorial masih muncul
             if (isRolling || isSettingsOpen || !isGameStarted || isTutorialActive) return;
             
             let finalTarget = null;
@@ -680,6 +707,56 @@
         const toggleGrid = document.getElementById('toggle-grid');
         const practiceGrid = document.getElementById('practice-grid');
 
+        // --- FUNGSI SAVE & LOAD SETTINGS LOCAL STORAGE ---
+        function saveSettings() {
+            const settings = {
+                controlMode: controlMode,
+                normalClicksLimit: normalClicksLimit,
+                isAlwaysRandom: isAlwaysRandom,
+                sequenceValue: seqInput.value,
+                showGrid: toggleGrid.checked
+            };
+            localStorage.setItem('dieSimSettings', JSON.stringify(settings));
+        }
+
+        function loadSettings() {
+            const saved = localStorage.getItem('dieSimSettings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                
+                if (settings.showGrid !== undefined) {
+                    toggleGrid.checked = settings.showGrid;
+                    if (settings.showGrid) practiceGrid.classList.add('active');
+                    else practiceGrid.classList.remove('active');
+                }
+                
+                if (settings.controlMode) {
+                    updateModeUI(settings.controlMode);
+                }
+                
+                if (settings.sequenceValue) {
+                    seqInput.value = settings.sequenceValue;
+                    sequenceArray = [];
+                    for (let i = 0; i < settings.sequenceValue.length; i++) {
+                        const num = parseInt(settings.sequenceValue[i]);
+                        if (num >= 1 && num <= 6) sequenceArray.push(num);
+                    }
+                }
+                
+                if (settings.normalClicksLimit !== undefined) {
+                    normalClicksLimit = parseInt(settings.normalClicksLimit);
+                    slider.value = normalClicksLimit;
+                    display.innerText = normalClicksLimit + (normalClicksLimit === 1 ? " Click" : " Clicks");
+                }
+                
+                if (settings.isAlwaysRandom !== undefined) {
+                    isAlwaysRandom = settings.isAlwaysRandom;
+                    alwaysRandomCheckbox.checked = isAlwaysRandom;
+                    updateSliderUI(isAlwaysRandom);
+                }
+            }
+        }
+
         function openSettings() { 
             if(!isGameStarted || isTutorialActive) return; 
             isSettingsOpen = true; 
@@ -721,6 +798,9 @@
             sequenceIndex = 0;
             currentRollCount = 0; 
             isAlwaysRandom = alwaysRandomCheckbox.checked;
+
+            // Simpan semua saat tombol done ditekan
+            saveSettings();
         });
 
         function updateModeUI(mode) {
@@ -794,16 +874,9 @@
         window.addEventListener('touchend', () => { 
             setTimeout(() => { isSwiping = false; }, 150); 
         });
-        // --- SERVICE WORKER REGISTRATION (PWA) ---
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').then((registration) => {
-            console.log('ServiceWorker registration successful with scope: ', registration.scope);
-        }, (err) => {
-            console.log('ServiceWorker registration failed: ', err);
-        });
-    });
-}
+
+        // Panggil saat script kelar di-load
+        loadSettings();
     </script>
 </body>
 </html>
