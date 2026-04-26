@@ -39,7 +39,7 @@
             -webkit-user-select: none;
         }
 
-        /* Canvas dipaksa fixed menutupi layar seperti background di Divinator */
+        /* Canvas dipaksa fixed menutupi layar */
         canvas {
             position: fixed !important;
             inset: 0 !important;
@@ -288,9 +288,15 @@
                 </div>
             </div>
 
-            <button id="close-settings" class="w-full bg-white text-black py-5 rounded-[2rem] text-[11px] font-black uppercase tracking-[0.4em] shadow-2xl active:scale-[0.98] transition-all mt-4">
+            <!-- TOmbol Save Settings -->
+            <button id="close-settings" class="w-full bg-white text-black py-4 rounded-[2rem] text-[11px] font-black uppercase tracking-[0.4em] shadow-2xl active:scale-[0.98] transition-all mt-4">
                 Done
             </button>
+            
+            <!-- Tombol Tutorial -->
+            <a href="tutorial.html" class="w-full flex justify-center bg-transparent border border-white/10 text-white/50 py-3 rounded-[2rem] text-[10px] font-bold uppercase tracking-[0.3em] active:scale-[0.98] transition-all mt-3 hover:bg-white/5">
+                Learn The App
+            </a>
             
             <div class="credit-text">
                 Concepted by Heri Sanjaya
@@ -299,7 +305,7 @@
     </div>
 
     <script>
-        // --- DYNAMIC MANIFEST BUAT PWA (Icon udah diarahin ke icon-512.png) ---
+        // --- DYNAMIC MANIFEST BUAT PWA ---
         const iconUrlData = "icon-512.png";
         const manifest = {
             name: "3D Die Simulator",
@@ -799,7 +805,6 @@
             currentRollCount = 0; 
             isAlwaysRandom = alwaysRandomCheckbox.checked;
 
-            // Simpan semua saat tombol done ditekan
             saveSettings();
         });
 
@@ -875,7 +880,7 @@
             setTimeout(() => { isSwiping = false; }, 150); 
         });
 
-        // Panggil saat script kelar di-load
+        // Eksekusi load data
         loadSettings();
     </script>
 </body>
