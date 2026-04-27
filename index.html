@@ -275,10 +275,11 @@
 
                     <div class="mb-2">
                         <span class="block text-[10px] uppercase tracking-[0.3em] font-bold text-white/40 mb-3 text-center">Mode Selection</span>
-                        <div class="grid grid-cols-3 gap-2 bg-white/5 p-2 rounded-[1.8rem] border border-white/5">
+                        <div class="grid grid-cols-2 gap-2 bg-white/5 p-2 rounded-[1.8rem] border border-white/5">
                             <button id="mode-force" class="pill-btn py-3 rounded-[1rem] text-[9px] font-black active">Force</button>
                             <button id="mode-avoid" class="pill-btn py-3 rounded-[1rem] text-[9px] font-black">Avoid</button>
                             <button id="mode-seq" class="pill-btn py-3 rounded-[1rem] text-[9px] font-black">Sequence</button>
+                            <button id="mode-pos" class="pill-btn py-3 rounded-[1rem] text-[9px] font-black">Position</button>
                         </div>
                     </div>
 
@@ -447,6 +448,10 @@
         let isAlwaysRandom = false; 
         
         let lockedAvoidTarget = null; 
+        
+        // --- POSITION MODE VARIABLES ---
+        let nextPositionalTarget = null;
+        let isFirstPositionalRoll = true;
 
         // --- GEOMETRI DADU ---
         function createDiceGeo(w, h, d, r) {
@@ -689,6 +694,31 @@
             // Panggil update icon grid agar seragam
             updatePracticeGridIcons();
         }
+        
+        // --- POSITION MODE: KONEKSI DARI KOORDINAT 3D KE GRID 2D ---
+        function calculateScreenGridFrom3D() {
+            if (!dieMesh || !camera) return null;
+            
+            // Copy posisi 3D dadu
+            const pos = new THREE.Vector3().copy(dieMesh.position);
+            // Proyeksikan ke viewport kamera (-1 sampai 1 untuk X dan Y)
+            pos.project(camera);
+            
+            // Konversi dari NDC (Normalized Device Coordinates) ke percentage layar (0.0 sampai 1.0)
+            const screenX = (pos.x + 1) / 2;
+            const screenY = -(pos.y - 1) / 2; // Inversi Y karena Y di NDC positif itu ke atas, sedangkan layar Y positif ke bawah
+            
+            // Hitung koordinat Grid: 3 Kolom, 2 Baris
+            const col = Math.floor(screenX * 3);
+            const row = Math.floor(screenY * 2);
+            
+            // Clamping biar kalau physics loncat keluar sedikit tetep ditangkap nilainya (0-2 col, 0-1 row)
+            const safeCol = Math.max(0, Math.min(2, col));
+            const safeRow = Math.max(0, Math.min(1, row));
+            
+            // Return sebagai angka 1 sampai 6
+            return (safeRow * 3) + safeCol + 1;
+        }
 
         function predict(target, avoid) {
             const pWorld = new CANNON.World(); pWorld.gravity.set(0, GRAVITY, 0); pWorld.allowSleep = true;
@@ -777,6 +807,14 @@
                     if (sequenceArray.length > 0 && sequenceIndex < sequenceArray.length) {
                         finalTarget = sequenceArray[sequenceIndex];
                     }
+                } else if (controlMode === 'position') {
+                    if (isFirstPositionalRoll || nextPositionalTarget === null) {
+                        // Iterasi roll pertama: Gunakan input manual dari interaksi layar
+                        finalTarget = gridNum;
+                    } else {
+                        // Roll selanjutnya: Bypass input dan otomatis pakai posisi cache sebelumnya
+                        finalTarget = nextPositionalTarget;
+                    }
                 }
             }
 
@@ -823,7 +861,17 @@
             world.step(PHYSICS_STEP);
             dieMesh.position.copy(dieBody.position); 
             dieMesh.quaternion.copy(dieBody.quaternion);
-            if (isRolling && dieBody.sleepState === CANNON.Body.SLEEPING) isRolling = false;
+            
+            // Deteksi saat dadu akhirnya tertidur/berhenti bergerak
+            if (isRolling && dieBody.sleepState === CANNON.Body.SLEEPING) {
+                isRolling = false;
+                
+                // Kalau mode posisi, hitung koordinat letak terakhir dan simpan di cache buat next roll
+                if (controlMode === 'position') {
+                    nextPositionalTarget = calculateScreenGridFrom3D();
+                    isFirstPositionalRoll = false;
+                }
+            }
             
             renderer.render(scene, camera);
         }
@@ -841,6 +889,7 @@
         const btnForce = document.getElementById('mode-force');
         const btnAvoid = document.getElementById('mode-avoid');
         const btnSeq = document.getElementById('mode-seq');
+        const btnPos = document.getElementById('mode-pos');
         const seqContainer = document.getElementById('sequence-container');
         const seqInput = document.getElementById('sequence-input');
         
@@ -947,11 +996,13 @@
                 }
             }
             
+            // Reset state kapanpun menu setting di-close
             sequenceIndex = 0;
             currentRollCount = 0; 
             isAlwaysRandom = alwaysRandomCheckbox.checked;
-
             lockedAvoidTarget = null; 
+            nextPositionalTarget = null;
+            isFirstPositionalRoll = true;
 
             saveSettings();
         });
@@ -961,6 +1012,7 @@
             btnForce.classList.toggle('active', mode === 'force');
             btnAvoid.classList.toggle('active', mode === 'avoid');
             btnSeq.classList.toggle('active', mode === 'sequence');
+            btnPos.classList.toggle('active', mode === 'position');
             
             if (mode === 'sequence') {
                 seqContainer.classList.remove('hidden');
@@ -976,10 +1028,12 @@
                 updateSliderUI(false);
             }
             
+            // Reset semua counter state saat ganti mode
             currentRollCount = 0;
             sequenceIndex = 0;
-
             lockedAvoidTarget = null;
+            nextPositionalTarget = null;
+            isFirstPositionalRoll = true;
         }
 
         document.getElementById('face-dots').addEventListener('click', () => updateDiceTheme('dots'));
@@ -988,6 +1042,7 @@
         btnForce.addEventListener('click', () => updateModeUI('force'));
         btnAvoid.addEventListener('click', () => updateModeUI('avoid'));
         btnSeq.addEventListener('click', () => updateModeUI('sequence'));
+        btnPos.addEventListener('click', () => updateModeUI('position'));
         
         seqInput.addEventListener('input', function(e) {
             this.value = this.value.replace(/[^1-6]/g, '');
@@ -996,8 +1051,12 @@
         slider.addEventListener('input', (e) => {
             normalClicksLimit = parseInt(e.target.value);
             display.innerText = normalClicksLimit + (normalClicksLimit === 1 ? " Click" : " Clicks");
+            
+            // Reset counters saat slider digeser
             currentRollCount = 0;
             sequenceIndex = 0;
+            nextPositionalTarget = null;
+            isFirstPositionalRoll = true;
         });
 
         toggleGrid.addEventListener('change', (e) => {
